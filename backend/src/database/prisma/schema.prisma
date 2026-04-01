@@ -1,0 +1,613 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  super_admin
+  admin
+  marketing_manager
+  marketing_agent
+  agent_supervisor
+  field_agent
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  negotiation
+  converted
+  lost
+  invalid
+  junk
+}
+
+enum LeadSource {
+  field_collection
+  website
+  referral
+  social_media
+  import
+  api
+}
+
+enum LeadPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ActivityType {
+  call
+  email
+  sms
+  whatsapp
+  meeting
+  note
+  status_change
+  assignment
+  follow_up
+}
+
+enum NotificationType {
+  lead_assigned
+  lead_status_changed
+  follow_up_reminder
+  new_lead
+  team_invite
+  system_alert
+  target_achieved
+  target_warning
+}
+
+enum TargetPeriod {
+  daily
+  weekly
+  monthly
+  quarterly
+}
+
+enum TargetType {
+  leads_collected
+  leads_converted
+  calls_made
+  revenue
+  visits
+  follow_ups
+}
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  completed
+  cancelled
+}
+
+// ==================== MODELS ====================
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  settings  Json     @default("{}")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  teams     Team[]
+  leads     Lead[]
+  forms     Form[]
+  targets   Target[]
+  campaigns Campaign[]
+  templates Template[]
+
+  @@map("organizations")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  phone             String?   @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  avatar            String?
+  role              Role      @default(field_agent)
+  isActive          Boolean   @default(true)
+  isEmailVerified   Boolean   @default(false)
+  isPhoneVerified   Boolean   @default(false)
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  passwordChangedAt DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Foreign Keys
+  organizationId String
+  teamId         String? // Made OPTIONAL
+  reportingToId  String?
+
+  // Relations
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team           Team?            @relation(fields: [teamId], references: [id])
+  reportingTo    User?            @relation("UserReportsTo", fields: [reportingToId], references: [id])
+  subordinates   User[]           @relation("UserReportsTo")
+  refreshTokens  RefreshToken[]
+  createdLeads   Lead[]           @relation("LeadCreatedBy")
+  assignedLeads  Lead[]           @relation("LeadAssignedTo")
+  leadActivities LeadActivity[]
+  notifications  Notification[]
+  userTargets    UserTarget[]
+  targetProgress TargetProgress[]
+  callLogs       CallLog[]
+  attendances    Attendance[]
+  leaveRequests  LeaveRequest[]
+
+  @@index([organizationId])
+  @@index([teamId])
+  @@index([role])
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String // marketing, field
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  organizationId String
+  leaderId       String? // Team leader
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      User[]
+  teamTargets  TeamTarget[]
+
+  @@index([organizationId])
+  @@map("teams")
+}
+
+// ==================== TARGET SYSTEM ====================
+
+model Target {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  type        TargetType
+  period      TargetPeriod
+  value       Int // Target value (e.g., 100 leads)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Foreign Keys
+  organizationId String
+
+  // Relations
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  teamTargets    TeamTarget[]
+  userTargets    UserTarget[]
+  targetProgress TargetProgress[]
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([period])
+  @@map("targets")
+}
+
+model TeamTarget {
+  id          String   @id @default(uuid())
+  targetValue Int // Can override the default target value
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  teamId   String
+  targetId String
+
+  // Relations
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, targetId])
+  @@map("team_targets")
+}
+
+model UserTarget {
+  id          String   @id @default(uuid())
+  targetValue Int // Can override the team/default target value
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  userId   String
+  targetId String
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId])
+  @@map("user_targets")
+}
+
+model TargetProgress {
+  id           String   @id @default(uuid())
+  currentValue Int      @default(0)
+  percentage   Float    @default(0)
+  periodStart  DateTime
+  periodEnd    DateTime
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Foreign Keys
+  targetId String
+  userId   String?
+  teamId   String?
+
+  // Relations
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetId])
+  @@index([userId])
+  @@index([periodStart, periodEnd])
+  @@map("target_progress")
+}
+
+// ==================== LEAD MANAGEMENT ====================
+
+model Form {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  fields      Json     @default("[]")
+  settings    Json     @default("{}")
+  version     Int      @default(1)
+  isPublished Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  organizationId String
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+  campaigns    Campaign[]
+
+  @@index([organizationId])
+  @@index([isPublished])
+  @@map("forms")
+}
+
+model Lead {
+  id             String       @id @default(uuid())
+  firstName      String
+  lastName       String?
+  email          String?
+  phone          String
+  alternatePhone String?
+  status         LeadStatus   @default(new)
+  source         LeadSource   @default(field_collection)
+  priority       LeadPriority @default(medium)
+  score          Int          @default(0)
+  formData       Json         @default("{}")
+  tags           String[]
+  notes          String?
+
+  // Location Data
+  latitude     Float?
+  longitude    Float?
+  address      String?
+  city         String?
+  state        String?
+  pincode      String?
+  locationData Json?
+
+  // Device/Collection Info
+  deviceInfo     Json?
+  ipAddress      String?
+  collectionMeta Json?
+
+  // Financial Info (for converted leads)
+  dealValue Float?
+  products  String[]
+
+  // Timestamps
+  contactedAt    DateTime?
+  convertedAt    DateTime?
+  followUpAt     DateTime?
+  lastActivityAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Foreign Keys
+  organizationId String
+  formId         String?
+  campaignId     String?
+  createdById    String
+  assignedToId   String?
+
+  // Relations
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  form         Form?          @relation(fields: [formId], references: [id])
+  campaign     Campaign?      @relation(fields: [campaignId], references: [id])
+  createdBy    User           @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  assignedTo   User?          @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  activities   LeadActivity[]
+  callLogs     CallLog[]
+  reminders    Reminder[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([source])
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([phone])
+  @@index([email])
+  @@index([createdAt])
+  @@index([followUpAt])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id          String       @id @default(uuid())
+  type        ActivityType
+  title       String
+  description String?
+  metadata    Json         @default("{}")
+  duration    Int? // Duration in seconds (for calls)
+  createdAt   DateTime     @default(now())
+
+  // Foreign Keys
+  leadId String
+  userId String
+
+  // Relations
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("lead_activities")
+}
+
+// ==================== CALL TRACKING ====================
+
+model CallLog {
+  id           String    @id @default(uuid())
+  phoneNumber  String
+  direction    String // inbound, outbound
+  status       String // completed, missed, busy, no_answer, failed
+  duration     Int       @default(0) // Duration in seconds
+  recordingUrl String?
+  notes        String?
+  metadata     Json      @default("{}")
+  startedAt    DateTime
+  endedAt      DateTime?
+  createdAt    DateTime  @default(now())
+
+  // Foreign Keys
+  userId String
+  leadId String?
+
+  // Relations
+  user User  @relation(fields: [userId], references: [id])
+  lead Lead? @relation(fields: [leadId], references: [id])
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([startedAt])
+  @@map("call_logs")
+}
+
+// ==================== CAMPAIGNS ====================
+
+model Campaign {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  type        String // field_collection, telecalling, email, sms
+  status      CampaignStatus @default(draft)
+  budget      Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  settings    Json           @default("{}")
+  metadata    Json           @default("{}")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Foreign Keys
+  organizationId String
+  formId         String?
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  form         Form?        @relation(fields: [formId], references: [id])
+  leads        Lead[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+// ==================== TEMPLATES ====================
+
+model Template {
+  id          String   @id @default(uuid())
+  name        String
+  channel     String // sms, email, whatsapp
+  category    String?
+  description String?
+  subject     String? // For email
+  content     String
+  variables   String[] // Variables used in template, e.g., {{firstName}}
+  tags        String[]
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign Keys
+  organizationId String
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([channel])
+  @@map("templates")
+}
+
+// ==================== REMINDERS & FOLLOW-UPS ====================
+
+model Reminder {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  reminderAt     DateTime
+  priority       String    @default("medium")
+  recurrence     String    @default("none")
+  notifyChannels String[]  @default(["in_app"])
+  status         String    @default("pending")
+  completionNote String?
+  snoozedUntil   DateTime?
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Foreign Keys
+  leadId String
+  userId String
+
+  // Relations
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([reminderAt])
+  @@index([isCompleted])
+  @@map("reminders")
+}
+
+// ==================== ATTENDANCE & LEAVE ====================
+
+model Attendance {
+  id               String    @id @default(uuid())
+  date             DateTime  @db.Date
+  checkInAt        DateTime?
+  checkOutAt       DateTime?
+  checkInLocation  Json?
+  checkOutLocation Json?
+  workingHours     Float?
+  status           String    @default("present") // present, absent, half_day, on_leave
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("attendances")
+}
+
+model LeaveRequest {
+  id              String    @id @default(uuid())
+  type            String // sick, casual, earned, unpaid
+  startDate       DateTime  @db.Date
+  endDate         DateTime  @db.Date
+  reason          String
+  status          String    @default("pending") // pending, approved, rejected
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("leave_requests")
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  message   String
+  data      Json             @default("{}")
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
