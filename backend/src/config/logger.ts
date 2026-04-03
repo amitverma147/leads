@@ -1,50 +1,29 @@
-import { PrismaClient } from '@prisma/client';
-import { config } from './index';
-import { logger } from './logger';
+import winston from 'winston';
 
-// Prevent multiple instances of Prisma Client in development
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
+const { combine, timestamp, errors, colorize, printf, json } = winston.format;
 
-export const prisma =
-  global.prisma ||
-  new PrismaClient({
-    log: config.isDevelopment
-      ? [
-          { emit: 'event', level: 'query' },
-          { emit: 'stdout', level: 'info' },
-          { emit: 'stdout', level: 'warn' },
-          { emit: 'stdout', level: 'error' },
-        ]
-      : [{ emit: 'stdout', level: 'error' }],
-    errorFormat: 'pretty',
-  });
+const isDevelopment = process.env['NODE_ENV'] !== 'production';
 
-if (config.isDevelopment) {
-  global.prisma = prisma;
+const devFormat = combine(
+  colorize(),
+  timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  errors({ stack: true }),
+  printf(({ timestamp, level, message, stack, ...meta }) => {
+    const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+    return `${timestamp} [${level}]: ${stack || message}${metaStr}`;
+  })
+);
 
-  // Log queries in development
-  prisma.$on('query' as never, (e: { query: string; duration: number }) => {
-    logger.debug(`Query: ${e.query}`);
-    logger.debug(`Duration: ${e.duration}ms`);
-  });
-}
+const prodFormat = combine(timestamp(), errors({ stack: true }), json());
 
-export const connectDatabase = async (): Promise<void> => {
-  try {
-    await prisma.$connect();
-    logger.info('✅ Database connected successfully');
-  } catch (error) {
-    logger.error('❌ Database connection failed:', error);
-    process.exit(1);
-  }
+export const logger = winston.createLogger({
+  level: isDevelopment ? 'debug' : 'info',
+  format: isDevelopment ? devFormat : prodFormat,
+  transports: [new winston.transports.Console()],
+});
+
+export default logger;
+
+export const morganStream = {
+  write: (message: string) => logger.http(message.trim()),
 };
-
-export const disconnectDatabase = async (): Promise<void> => {
-  await prisma.$disconnect();
-  logger.info('Database disconnected');
-};
-
-export default prisma;

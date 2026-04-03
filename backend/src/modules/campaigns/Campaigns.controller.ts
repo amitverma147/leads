@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { CampaignStatus } from '@prisma/client';
 import { asyncHandler } from '../../utils/async-handler';
 import { ApiResponse } from '../../utils/api-response';
-import { campaignsService } from './campaigns.service';
+import { campaignsService } from './Campaigns.service';
 import { Role } from '../../config/constants';
 
 // ─── Campaign CRUD ────────────────────────────────────────────────────────────

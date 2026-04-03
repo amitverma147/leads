@@ -81,13 +81,13 @@ router.get(
 
 router.get(
   '/team/:teamId/performance',
-  requireRole([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR]),
+  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR),
   targetsController.getTeamPerformance
 );
 
 router.get(
   '/user/:userId/performance',
-  requireRole([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR]),
+  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR),
   targetsController.getUserPerformance
 );
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as templatesController from './templates.controller';
+import * as templatesController from './Templates.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireAdmin, requireRole } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';

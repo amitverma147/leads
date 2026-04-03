@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(sed -i '' \"s|from './attendance.service'|from './Attendance.service'|g\" /Users/amitverma/Downloads/leads/backend/src/modules/attendance/Attendance.controller.ts)",
+      "Bash(sed -i '' \"s|from './attendance.types'|from './Attendance.types'|g\" /Users/amitverma/Downloads/leads/backend/src/modules/attendance/Attendance.service.ts)",
+      "Bash(sed -i '' \"s|from './campaigns.service'|from './Campaigns.service'|g\" /Users/amitverma/Downloads/leads/backend/src/modules/campaigns/Campaigns.controller.ts)",
+      "Bash(sed -i '' \"s|from './campaigns.controller'|from './Campaigns.controller'|g\" /Users/amitverma/Downloads/leads/backend/src/modules/campaigns/Campaigns.routes.ts)",
+      "Bash(sed -i '' \"s|from './campaigns.validation'|from './Campaigns.validation'|g\" /Users/amitverma/Downloads/leads/backend/src/modules/campaigns/Campaigns.routes.ts)",
+      "Bash(sed -i '' \"s|settings: settings || {}|settings: \\(settings || {}\\) as unknown as object|g\" /Users/amitverma/Downloads/leads/backend/src/modules/campaigns/Campaigns.service.ts)",
+      "Bash(sed -i '' \"s|fields: \\(fields || \\\\[\\\\]\\) as unknown\\\\[\\\\]|fields: \\(fields || []\\) as unknown as object[]|g\" /Users/amitverma/Downloads/leads/backend/src/modules/forms/forms.service.ts)"
+    ]
+  }
+}

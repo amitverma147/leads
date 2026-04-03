@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/async-handler';
 import { ApiResponse } from '../../utils/api-response';
-import { attendanceService } from './attendance.service';
+import { attendanceService } from './Attendance.service';
 import { Role } from '../../config/constants';
 
 // ── Check-in / Check-out ─────────────────────────────────────────────────────

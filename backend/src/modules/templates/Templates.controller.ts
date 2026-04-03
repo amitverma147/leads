@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/async-handler';
 import { ApiResponse } from '../../utils/api-response';
-import { templatesService } from './templates.service';
+import { templatesService } from './Templates.service';
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 

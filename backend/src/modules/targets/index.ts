@@ -1,5 +1,5 @@
-export * from './teams.types';
-export * from './teams.validation';
-export * from './teams.service';
-export * from './teams.controller';
-export { default as teamsRoutes } from './teams.routes';
+export * from './targets.types';
+export * from './targets.validation';
+export * from './targets.service';
+export * from './targets.controller';
+export { default as targetsRoutes } from './targets.routes';

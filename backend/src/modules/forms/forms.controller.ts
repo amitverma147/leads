@@ -104,8 +104,8 @@ export const getForms = asyncHandler(async (req: Request, res: Response): Promis
       isPublished: isPublished as boolean | undefined,
       isActive: isActive as boolean | undefined,
     },
-    page as number,
-    limit as number,
+    page as unknown as number,
+    limit as unknown as number,
     sortBy as string,
     sortOrder as 'asc' | 'desc'
   );

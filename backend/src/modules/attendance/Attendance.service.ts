@@ -25,7 +25,7 @@ import {
   LeaveType,
   LeaveStatus,
   DEFAULT_LEAVE_ENTITLEMENTS,
-} from './attendance.types';
+} from './Attendance.types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

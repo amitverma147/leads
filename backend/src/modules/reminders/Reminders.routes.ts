@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as remindersController from './reminders.controller';
+import * as remindersController from './Reminders.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';
@@ -11,7 +11,7 @@ import {
   reminderListQuerySchema,
   snoozeReminderSchema,
   completeReminderSchema,
-} from './reminders.validation';
+} from './Reminders.validation';
 
 const router = Router();
 router.use(authenticate);

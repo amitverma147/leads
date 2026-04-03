@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/async-handler';
 import { ApiResponse } from '../../utils/api-response';
-import { remindersService } from './reminders.service';
+import { remindersService } from './Reminders.service';
 import { Role } from '../../config/constants';
 
 /**

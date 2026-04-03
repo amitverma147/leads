@@ -45,7 +45,7 @@ const parseExpiry = (expiry: string): number => {
  * Generate access token
  */
 export const generateAccessToken = (payload: Omit<TokenPayload, 'type'>): string => {
-  const tokenPayload: TokenPayload = { ...payload, type: 'access' };
+  const tokenPayload: TokenPayload = { ...payload, type: 'access' } as TokenPayload;
 
   return jwt.sign(tokenPayload, config.jwt.accessSecret, {
     expiresIn: config.jwt.accessExpiry,
@@ -56,7 +56,7 @@ export const generateAccessToken = (payload: Omit<TokenPayload, 'type'>): string
  * Generate refresh token
  */
 export const generateRefreshToken = (payload: Omit<TokenPayload, 'type'>): string => {
-  const tokenPayload: TokenPayload = { ...payload, type: 'refresh' };
+  const tokenPayload: TokenPayload = { ...payload, type: 'refresh' } as TokenPayload;
 
   return jwt.sign(tokenPayload, config.jwt.refreshSecret, {
     expiresIn: config.jwt.refreshExpiry,

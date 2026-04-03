@@ -13,7 +13,7 @@ import {
   BulkSendResult,
   TemplateSettings,
   TemplateChannel,
-} from './templates.types';
+} from './Templates.types';
 
 // ─── Variable Handling ────────────────────────────────────────────────────────
 
@@ -123,7 +123,7 @@ export class TemplatesService {
         description: input.description ?? null,
         variables,
         tags: input.tags || [],
-        settings: input.settings || {},
+        settings: (input.settings || {}) as unknown as object,
         isActive: true,
         organizationId,
       },
@@ -566,8 +566,8 @@ export class TemplatesService {
       where: {
         metadata: {
           path: ['templateId'],
-          in: templateIds,
-        },
+          string_in: templateIds,
+        } as object,
       },
       _count: true,
     });
@@ -576,7 +576,7 @@ export class TemplatesService {
     const map: Record<string, number> = {};
     for (const row of counts) {
       const tid = (row.metadata as any)?.templateId;
-      if (tid) map[tid] = (map[tid] || 0) + row._count;
+      if (tid) map[tid] = (map[tid] || 0) + (row._count as number);
     }
     return map;
   }

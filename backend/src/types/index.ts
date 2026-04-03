@@ -1,1 +1,1 @@
-export * from './express.d';
+// express.d.ts is an ambient module augmentation — it is picked up automatically by TypeScript

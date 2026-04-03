@@ -1,5 +1,5 @@
-export * from './attendance.types';
-export * from './attendance.validation';
-export * from './attendance.service';
-export * from './attendance.controller';
-export { default as attendanceRoutes } from './attendance.routes';
+export * from './Attendance.types';
+export * from './Attendance.validation';
+export * from './Attendance.service';
+export * from './Attendance.controller';
+export { default as attendanceRoutes } from './Attendance.routes';

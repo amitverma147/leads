@@ -43,7 +43,7 @@ export class FormsService {
       data: {
         name,
         description,
-        fields: fields || [],
+        fields: (fields || []) as unknown as object[],
         settings: settings || {},
         organizationId,
       },
@@ -342,7 +342,7 @@ export class FormsService {
     }
 
     // Validate form has fields before publishing
-    const fields = form.fields as FormField[];
+    const fields = form.fields as unknown as FormField[];
     if (!form.isPublished && (!fields || fields.length === 0)) {
       throw ApiError.badRequest('Cannot publish a form without fields');
     }
@@ -364,7 +364,7 @@ export class FormsService {
    * Format form list response
    */
   private formatFormListResponse(form: any): FormListResponse {
-    const fields = form.fields as FormField[];
+    const fields = form.fields as unknown as FormField[];
 
     return {
       id: form.id,
@@ -386,7 +386,7 @@ export class FormsService {
   private formatFormDetailResponse(form: any): FormDetailResponse {
     return {
       ...this.formatFormListResponse(form),
-      fields: (form.fields as FormField[]) || [],
+      fields: (form.fields as unknown as FormField[]) || [],
       settings: (form.settings as Record<string, any>) || {},
       organizationId: form.organizationId,
     };

@@ -105,8 +105,8 @@ export const getTeams = asyncHandler(async (req: Request, res: Response): Promis
       type: type as 'marketing' | 'field',
       isActive: isActive as boolean | undefined,
     },
-    page as number,
-    limit as number,
+    page as unknown as number,
+    limit as unknown as number,
     sortBy as string,
     sortOrder as 'asc' | 'desc'
   );

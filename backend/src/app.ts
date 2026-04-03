@@ -23,7 +23,7 @@ import { attendanceRoutes } from './modules/attendance';
 import { analyticsRoutes } from './modules/analytics';
 import { notificationsRoutes } from './modules/notifications';
 import { teamsRoutes } from './modules/teams';
-import { organizationsRoutes } from './modules/organizations';
+import { organizationsRoutes } from './modules/organization';
 
 const app: Application = express();
 

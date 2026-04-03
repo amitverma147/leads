@@ -132,8 +132,8 @@ export const getUsers = asyncHandler(async (req: Request, res: Response): Promis
       isActive: isActive as boolean | undefined,
       teamId: teamId as string,
     },
-    page as number,
-    limit as number,
+    page as unknown as number,
+    limit as unknown as number,
     sortBy as string,
     sortOrder as 'asc' | 'desc'
   );

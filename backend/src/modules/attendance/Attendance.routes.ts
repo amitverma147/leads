@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as attendanceController from './attendance.controller';
+import * as attendanceController from './Attendance.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';
@@ -15,7 +15,7 @@ import {
   reviewLeaveRequestSchema,
   leaveRequestListQuerySchema,
   leaveIdParamSchema,
-} from './attendance.validation';
+} from './Attendance.validation';
 
 const router = Router();
 router.use(authenticate);

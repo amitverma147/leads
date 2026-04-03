@@ -18,7 +18,7 @@ import {
   CampaignUserResponse,
   CampaignSettings,
   TargetAudience,
-} from './campaigns.types';
+} from './Campaigns.types';
 
 export class CampaignsService {
   // ─── CREATE ─────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ export class CampaignsService {
         endDate: endDate ? new Date(endDate) : null,
         budget: budget ?? null,
         formId: formId ?? null,
-        settings: settings || {},
+        settings: (settings || {}) as unknown as object,
         metadata,
         organizationId,
       },

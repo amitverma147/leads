@@ -1,5 +1,5 @@
-export * from './templates.types';
+export * from './Templates.types';
 export * from './templates.validation';
-export * from './templates.service';
-export * from './templates.controller';
-export { default as templatesRoutes } from './templates.routes';
+export * from './Templates.service';
+export * from './Templates.controller';
+export { default as templatesRoutes } from './Templates.routes';

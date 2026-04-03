@@ -142,8 +142,8 @@ export const getLeads = asyncHandler(async (req: Request, res: Response): Promis
       dateTo: dateTo ? new Date(dateTo as string) : undefined,
       hasFollowUp: hasFollowUp as boolean | undefined,
     },
-    page as number,
-    limit as number,
+    page as unknown as number,
+    limit as unknown as number,
     sortBy as string,
     sortOrder as 'asc' | 'desc'
   );
@@ -377,8 +377,8 @@ export const getLeadActivities = asyncHandler(
     const result = await leadsService.getLeadActivities(
       id,
       organizationId,
-      page as number,
-      limit as number
+      page as unknown as number,
+      limit as unknown as number
     );
 
     return ApiResponse.paginated(

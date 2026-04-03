@@ -55,7 +55,7 @@ export class OrganizationsService {
       data: {
         name: input.name,
         logo: input.logo,
-        settings,
+        settings: settings as unknown as object,
       },
     });
 

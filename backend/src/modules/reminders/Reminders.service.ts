@@ -17,7 +17,7 @@ import {
   ReminderStatus,
   RecurrenceType,
   NotifyChannel,
-} from './reminders.types';
+} from './Reminders.types';
 
 export class RemindersService {
   // ─── CREATE ─────────────────────────────────────────────────────────────────

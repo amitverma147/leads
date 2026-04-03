@@ -104,8 +104,8 @@ export const getTargets = asyncHandler(
         period: period as TargetPeriod,
         isActive: isActive as boolean | undefined,
       },
-      page as number,
-      limit as number,
+      page as unknown as number,
+      limit as unknown as number,
       sortBy as string,
       sortOrder as 'asc' | 'desc'
     );
@@ -432,7 +432,7 @@ export const getLeaderboard = asyncHandler(
       type as TargetType,
       period as TargetPeriod,
       teamId as string,
-      limit as number
+      limit as unknown as number
     );
 
     return ApiResponse.success(res, leaderboard, 'Leaderboard retrieved successfully');
