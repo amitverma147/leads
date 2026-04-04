@@ -4,6 +4,26 @@ import { LEAD_STATUS, LEAD_SOURCE, LEAD_PRIORITY, ACTIVITY_TYPE } from '../../co
 // Phone validation regex
 const phoneRegex = /^[6-9]\d{9}$/;
 
+const normalizeIndianPhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, '');
+
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return digits.slice(1);
+  }
+
+  return digits;
+};
+
+const normalizeLeadSource = (source?: string): string | undefined => {
+  if (!source) return undefined;
+  if (source === 'telecalling') return 'api';
+  return source;
+};
+
 // Enum values
 const leadStatusValues = Object.values(LEAD_STATUS) as [string, ...string[]];
 const leadSourceValues = Object.values(LEAD_SOURCE) as [string, ...string[]];
@@ -17,9 +37,22 @@ export const createLeadSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50).trim(),
   lastName: z.string().max(50).trim().optional(),
   email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
-  phone: z.string().regex(phoneRegex, 'Invalid phone number'),
-  alternatePhone: z.string().regex(phoneRegex, 'Invalid phone number').optional(),
-  source: z.enum(leadSourceValues).optional(),
+  phone: z
+    .string()
+    .transform((value) => normalizeIndianPhone(value))
+    .refine((value) => phoneRegex.test(value), { message: 'Invalid phone number' }),
+  alternatePhone: z
+    .string()
+    .optional()
+    .transform((value) => (value ? normalizeIndianPhone(value) : undefined))
+    .refine((value) => !value || phoneRegex.test(value), { message: 'Invalid phone number' }),
+  source: z
+    .string()
+    .optional()
+    .transform((value) => normalizeLeadSource(value))
+    .refine((value) => !value || leadSourceValues.includes(value), {
+      message: `Invalid enum value. Expected ${leadSourceValues.map((v) => `'${v}'`).join(' | ')}`,
+    }),
   priority: z.enum(leadPriorityValues).optional(),
   formId: z.string().uuid().optional(),
   formData: z.record(z.any()).optional(),
@@ -41,8 +74,17 @@ export const updateLeadSchema = z.object({
   firstName: z.string().min(1).max(50).trim().optional(),
   lastName: z.string().max(50).trim().optional().nullable(),
   email: z.string().email().toLowerCase().trim().optional().nullable(),
-  phone: z.string().regex(phoneRegex).optional(),
-  alternatePhone: z.string().regex(phoneRegex).optional().nullable(),
+  phone: z
+    .string()
+    .optional()
+    .transform((value) => (value ? normalizeIndianPhone(value) : undefined))
+    .refine((value) => !value || phoneRegex.test(value), { message: 'Invalid phone number' }),
+  alternatePhone: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((value) => (value ? normalizeIndianPhone(value) : value))
+    .refine((value) => !value || phoneRegex.test(value), { message: 'Invalid phone number' }),
   status: z.enum(leadStatusValues).optional(),
   priority: z.enum(leadPriorityValues).optional(),
   formData: z.record(z.any()).optional(),
@@ -77,7 +119,7 @@ export const leadListQuerySchema = z.object({
   source: z
     .string()
     .optional()
-    .transform((val) => (val ? val.split(',') : undefined)),
+    .transform((val) => (val ? val.split(',').map((item) => normalizeLeadSource(item) as string) : undefined)),
   priority: z
     .string()
     .optional()

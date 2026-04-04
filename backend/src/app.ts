@@ -19,6 +19,7 @@ import { formsRoutes } from './modules/forms';
 import { campaignsRoutes } from './modules/campaigns';
 import { templatesRoutes } from './modules/templates';
 import { remindersRoutes } from './modules/reminders';
+import { targetsRoutes } from './modules/targets';
 import { attendanceRoutes } from './modules/attendance';
 import { analyticsRoutes } from './modules/analytics';
 import { notificationsRoutes } from './modules/notifications';
@@ -60,6 +61,8 @@ app.use(
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.maxRequests,
+  // Keep strict limits in production but avoid blocking local dev workflows.
+  skip: () => config.isDevelopment,
   message: {
     success: false,
     message: 'Too many requests, please try again later',
@@ -135,6 +138,7 @@ app.use(`${apiPrefix}/forms`, formsRoutes);
 app.use(`${apiPrefix}/campaigns`, campaignsRoutes);
 app.use(`${apiPrefix}/templates`, templatesRoutes);
 app.use(`${apiPrefix}/reminders`, remindersRoutes);
+app.use(`${apiPrefix}/targets`, targetsRoutes);
 app.use(`${apiPrefix}/attendance`, attendanceRoutes);
 app.use(`${apiPrefix}/teams`, teamsRoutes);
 app.use(`${apiPrefix}/organizations`, organizationsRoutes);

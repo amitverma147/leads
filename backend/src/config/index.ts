@@ -1,5 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -7,7 +11,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 export const config = {
   // Application
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: parseInt(process.env.PORT || '5001', 10),
   apiVersion: process.env.API_VERSION || 'v1',
   appName: process.env.APP_NAME || 'LeadGenApp',
 

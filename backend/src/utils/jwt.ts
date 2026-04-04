@@ -1,4 +1,5 @@
-import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+import type { SignOptions, JwtPayload } from 'jsonwebtoken';
 import { config } from '../config';
 import { Role } from '../config/constants';
 

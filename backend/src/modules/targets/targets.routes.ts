@@ -35,6 +35,32 @@ router.get(
 );
 
 router.get(
+  '/my-performance',
+  targetsController.getMyPerformance
+);
+
+router.get(
+  '/team/:teamId/performance',
+  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR),
+  targetsController.getTeamPerformance
+);
+
+router.get(
+  '/user/:userId/performance',
+  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR),
+  targetsController.getUserPerformance
+);
+
+/**
+ * Leaderboard route
+ */
+router.get(
+  '/leaderboard',
+  validate({ query: leaderboardQuerySchema }),
+  targetsController.getLeaderboard
+);
+
+router.get(
   '/:id',
   validate({ params: targetIdParamSchema }),
   targetsController.getTargetById
@@ -69,35 +95,6 @@ router.post(
   requireAdmin,
   validate({ params: targetIdParamSchema }),
   targetsController.unassignTarget
-);
-
-/**
- * Performance routes
- */
-router.get(
-  '/my-performance',
-  targetsController.getMyPerformance
-);
-
-router.get(
-  '/team/:teamId/performance',
-  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR),
-  targetsController.getTeamPerformance
-);
-
-router.get(
-  '/user/:userId/performance',
-  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MARKETING_MANAGER, ROLES.AGENT_SUPERVISOR),
-  targetsController.getUserPerformance
-);
-
-/**
- * Leaderboard route
- */
-router.get(
-  '/leaderboard',
-  validate({ query: leaderboardQuerySchema }),
-  targetsController.getLeaderboard
 );
 
 export default router;

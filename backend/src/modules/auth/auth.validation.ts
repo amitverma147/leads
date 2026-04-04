@@ -6,6 +6,20 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>
 // Phone validation regex (Indian mobile number)
 const phoneRegex = /^[6-9]\d{9}$/;
 
+const normalizeIndianPhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, '');
+
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return digits.slice(1);
+  }
+
+  return digits;
+};
+
 /**
  * Register validation schema
  */
@@ -30,8 +44,17 @@ export const registerSchema = z.object({
     .trim(),
   phone: z
     .string()
-    .regex(phoneRegex, 'Invalid phone number. Must be a 10-digit Indian mobile number')
-    .optional(),
+    .optional()
+    .transform((value) => {
+      if (!value || !value.trim()) {
+        return undefined;
+      }
+
+      return normalizeIndianPhone(value);
+    })
+    .refine((value) => !value || phoneRegex.test(value), {
+      message: 'Invalid phone number. Must be a 10-digit Indian mobile number',
+    }),
   organizationName: z
     .string()
     .min(2, 'Organization name must be at least 2 characters')

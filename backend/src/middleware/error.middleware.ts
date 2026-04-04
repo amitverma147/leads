@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
-import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { ApiError } from '../utils/api-error';
 import { ApiResponse } from '../utils/api-response';
 import { logger } from '../config/logger';
 import { config } from '../config';
+
+const { JsonWebTokenError, TokenExpiredError } = jwt;
 
 /**
  * Global error handler middleware

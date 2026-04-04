@@ -1,3 +1,4 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { config } from './index';
 import { logger } from './logger';
@@ -8,9 +9,11 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-export const prisma =
-  global.prisma ||
-  new PrismaClient({
+function createPrismaClient() {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+
+  return new PrismaClient({
+    adapter,
     log: config.isDevelopment
       ? [
           { emit: 'event', level: 'query' },
@@ -21,6 +24,9 @@ export const prisma =
       : [{ emit: 'stdout', level: 'error' }],
     errorFormat: 'pretty',
   });
+}
+
+export const prisma = global.prisma || createPrismaClient();
 
 if (config.isDevelopment) {
   global.prisma = prisma;
