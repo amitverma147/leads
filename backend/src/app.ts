@@ -25,6 +25,8 @@ import { analyticsRoutes } from './modules/analytics';
 import { notificationsRoutes } from './modules/notifications';
 import { teamsRoutes } from './modules/teams';
 import { organizationsRoutes } from './modules/organization';
+import { invoiceTemplatesRoutes } from './modules/invoice-templates';
+import { invoicesRoutes } from './modules/invoices';
 
 const app: Application = express();
 
@@ -144,6 +146,8 @@ app.use(`${apiPrefix}/teams`, teamsRoutes);
 app.use(`${apiPrefix}/organizations`, organizationsRoutes);
 app.use(`${apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${apiPrefix}/notifications`, notificationsRoutes);
+app.use(`${apiPrefix}/invoice-templates`, invoiceTemplatesRoutes);
+app.use(`${apiPrefix}/invoices`, invoicesRoutes);
 
 // =============================================
 // Error Handling

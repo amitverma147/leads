@@ -104,13 +104,16 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   // Relations
-  users     User[]
-  teams     Team[]
-  leads     Lead[]
-  forms     Form[]
-  targets   Target[]
-  campaigns Campaign[]
-  templates Template[]
+  users            User[]
+  teams            Team[]
+  leads            Lead[]
+  forms            Form[]
+  targets          Target[]
+  campaigns        Campaign[]
+  templates        Template[]
+  invoiceTemplates InvoiceTemplate[]
+  invoiceCustomers InvoiceCustomer[]
+  invoices         Invoice[]
 
   @@map("organizations")
 }
@@ -143,16 +146,18 @@ model User {
   team           Team?            @relation(fields: [teamId], references: [id])
   reportingTo    User?            @relation("UserReportsTo", fields: [reportingToId], references: [id])
   subordinates   User[]           @relation("UserReportsTo")
-  refreshTokens  RefreshToken[]
-  createdLeads   Lead[]           @relation("LeadCreatedBy")
-  assignedLeads  Lead[]           @relation("LeadAssignedTo")
-  leadActivities LeadActivity[]
-  notifications  Notification[]
-  userTargets    UserTarget[]
-  targetProgress TargetProgress[]
-  callLogs       CallLog[]
-  attendances    Attendance[]
-  leaveRequests  LeaveRequest[]
+  refreshTokens         RefreshToken[]
+  createdLeads          Lead[]            @relation("LeadCreatedBy")
+  assignedLeads         Lead[]            @relation("LeadAssignedTo")
+  leadActivities        LeadActivity[]
+  notifications         Notification[]
+  userTargets           UserTarget[]
+  targetProgress        TargetProgress[]
+  callLogs              CallLog[]
+  attendances           Attendance[]
+  leaveRequests         LeaveRequest[]
+  createdInvoiceTemplates InvoiceTemplate[] @relation("InvoiceTemplateCreatedBy")
+  createdInvoices       Invoice[]         @relation("InvoiceCreatedBy")
 
   @@index([organizationId])
   @@index([teamId])
@@ -376,9 +381,11 @@ model Lead {
   campaign     Campaign?      @relation(fields: [campaignId], references: [id])
   createdBy    User           @relation("LeadCreatedBy", fields: [createdById], references: [id])
   assignedTo   User?          @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
-  activities   LeadActivity[]
-  callLogs     CallLog[]
-  reminders    Reminder[]
+  activities        LeadActivity[]
+  callLogs          CallLog[]
+  reminders         Reminder[]
+  invoiceCustomers  InvoiceCustomer[]
+  invoices          Invoice[]
 
   @@index([organizationId])
   @@index([status])
@@ -585,6 +592,163 @@ model LeaveRequest {
   @@index([status])
   @@index([startDate, endDate])
   @@map("leave_requests")
+}
+
+// ==================== INVOICE SYSTEM ====================
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  overdue
+  cancelled
+  void
+}
+
+enum InvoiceTemplateFieldRole {
+  customer_name
+  customer_email
+  customer_phone
+  customer_address
+  customer_city
+  customer_state
+  customer_pincode
+  line_item_description
+  line_item_quantity
+  line_item_unit_price
+  notes
+  custom
+}
+
+model InvoiceTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  // Array of InvoiceTemplateField (JSON)
+  fields      Json     @default("[]")
+  // { currency, taxRate, discountEnabled, logoUrl, companyName, companyAddress, termsAndConditions, paymentInstructions }
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationId String
+  createdById    String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("InvoiceTemplateCreatedBy", fields: [createdById], references: [id])
+  invoices     Invoice[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@map("invoice_templates")
+}
+
+model InvoiceCustomer {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String?
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  pincode   String?
+  country   String?
+  // Marketing tags (e.g., high_value, frequent_buyer, vip)
+  tags      String[] @default([])
+  // Extra profile metadata
+  metadata  Json     @default("{}")
+
+  // Pre-aggregated analytics fields (updated on each invoice)
+  totalSpend    Float     @default(0)
+  invoiceCount  Int       @default(0)
+  lastInvoiceAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  leadId         String? // Optional link to a Lead
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+  invoices     Invoice[]
+
+  @@index([organizationId])
+  @@index([phone])
+  @@index([email])
+  @@map("invoice_customers")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        // e.g., INV-2024-0001  (unique per org, generated on create)
+  status        InvoiceStatus @default(draft)
+
+  // Denormalized customer snapshot at submission time
+  customerSnapshot Json @default("{}")
+
+  // Financial totals
+  subtotal  Float  @default(0)
+  discount  Float  @default(0) // absolute amount
+  taxAmount Float  @default(0)
+  total     Float  @default(0)
+  currency  String @default("INR")
+
+  // Dates
+  invoiceDate DateTime  @default(now())
+  dueDate     DateTime?
+  paidAt      DateTime?
+
+  // Full raw form submission data (for analytics / replay)
+  formData Json @default("{}")
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  templateId     String
+  customerId     String
+  createdById    String
+  leadId         String?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     InvoiceTemplate @relation(fields: [templateId], references: [id])
+  customer     InvoiceCustomer @relation(fields: [customerId], references: [id])
+  createdBy    User            @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  lead         Lead?           @relation(fields: [leadId], references: [id])
+  lineItems    InvoiceLineItem[]
+
+  @@unique([invoiceNumber, organizationId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([customerId])
+  @@index([templateId])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String @id @default(uuid())
+  description String
+  quantity    Float  @default(1)
+  unitPrice   Float
+  discountPct Float  @default(0) // percentage
+  taxRatePct  Float  @default(0) // percentage
+  amount      Float  // final calculated amount for this line
+  order       Int    @default(0)
+  metadata    Json   @default("{}")
+  createdAt   DateTime @default(now())
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_line_items")
 }
 
 // ==================== NOTIFICATIONS ====================

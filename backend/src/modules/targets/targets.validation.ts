@@ -48,7 +48,13 @@ export const assignTargetSchema = z.object({
   teamIds: z.array(z.string().uuid()).optional(),
   userIds: z.array(z.string().uuid()).optional(),
   customValue: z.number().int().min(1).optional(),
-});
+}).refine(
+  (data) => (data.teamIds && data.teamIds.length > 0) || (data.userIds && data.userIds.length > 0),
+  {
+    message: 'At least one team or agent must be selected',
+    path: ['teamIds'],
+  }
+);
 
 /**
  * Target ID param validation schema

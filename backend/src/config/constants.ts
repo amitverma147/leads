@@ -88,6 +88,32 @@ export const NOTIFICATION_TYPE = {
   SYSTEM_ALERT: 'system_alert',
 } as const;
 
+// Invoice Status
+export const INVOICE_STATUS = {
+  DRAFT: 'draft',
+  ISSUED: 'issued',
+  PAID: 'paid',
+  OVERDUE: 'overdue',
+  CANCELLED: 'cancelled',
+  VOID: 'void',
+} as const;
+
+// Invoice Template Field Roles (semantic mapping)
+export const INVOICE_FIELD_ROLE = {
+  CUSTOMER_NAME: 'customer_name',
+  CUSTOMER_EMAIL: 'customer_email',
+  CUSTOMER_PHONE: 'customer_phone',
+  CUSTOMER_ADDRESS: 'customer_address',
+  CUSTOMER_CITY: 'customer_city',
+  CUSTOMER_STATE: 'customer_state',
+  CUSTOMER_PINCODE: 'customer_pincode',
+  LINE_ITEM_DESCRIPTION: 'line_item_description',
+  LINE_ITEM_QUANTITY: 'line_item_quantity',
+  LINE_ITEM_UNIT_PRICE: 'line_item_unit_price',
+  NOTES: 'notes',
+  CUSTOM: 'custom',
+} as const;
+
 // Pagination
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
@@ -103,3 +129,5 @@ export type LeadPriority = (typeof LEAD_PRIORITY)[keyof typeof LEAD_PRIORITY];
 export type ActivityType = (typeof ACTIVITY_TYPE)[keyof typeof ACTIVITY_TYPE];
 export type FieldType = (typeof FIELD_TYPES)[keyof typeof FIELD_TYPES];
 export type NotificationType = (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICATION_TYPE];
+export type InvoiceStatus = (typeof INVOICE_STATUS)[keyof typeof INVOICE_STATUS];
+export type InvoiceFieldRole = (typeof INVOICE_FIELD_ROLE)[keyof typeof INVOICE_FIELD_ROLE];

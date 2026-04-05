@@ -215,7 +215,7 @@ export class TargetsService {
 
         return {
           userId: ut.user.id,
-          userName: `${ut.user.firstName} ${ut.user.lastName}`,
+          userName: [ut.user.firstName, ut.user.lastName].filter(Boolean).join(' '),
           teamName: ut.user.team?.name || null,
           targetValue: ut.targetValue,
           progress,
@@ -306,6 +306,10 @@ export class TargetsService {
     organizationId: string
   ): Promise<TargetDetailResponse> {
     const { targetId, teamIds, userIds, customValue } = input;
+
+    if ((!teamIds || teamIds.length === 0) && (!userIds || userIds.length === 0)) {
+      throw ApiError.badRequest('At least one team or agent must be selected');
+    }
 
     // Verify target exists
     const target = await prisma.target.findFirst({
@@ -534,7 +538,7 @@ export class TargetsService {
 
     return {
       userId,
-      userName: `${user.firstName} ${user.lastName}`,
+      userName: [user.firstName, user.lastName].filter(Boolean).join(' '),
       teamName: user.team?.name || null,
       targets,
       overallPerformance: Math.round(overallPerformance * 100) / 100,
@@ -594,7 +598,7 @@ export class TargetsService {
         return {
           rank: 0, // Will be set after sorting
           userId: ut.user.id,
-          userName: `${ut.user.firstName} ${ut.user.lastName}`,
+          userName: [ut.user.firstName, ut.user.lastName].filter(Boolean).join(' '),
           avatar: ut.user.avatar,
           teamName: ut.user.team?.name || null,
           value: currentValue,
@@ -807,8 +811,8 @@ export class TargetsService {
   private getProgressStatus(
     percentage: number
   ): 'on_track' | 'behind' | 'achieved' | 'exceeded' {
-    if (percentage >= 100) return 'achieved';
     if (percentage > 100) return 'exceeded';
+    if (percentage >= 100) return 'achieved';
     if (percentage >= 70) return 'on_track';
     return 'behind';
   }
