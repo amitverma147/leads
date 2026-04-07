@@ -114,6 +114,7 @@ model Organization {
   invoiceTemplates InvoiceTemplate[]
   invoiceCustomers InvoiceCustomer[]
   invoices         Invoice[]
+  invoiceProducts  InvoiceProduct[]
 
   @@map("organizations")
 }
@@ -730,6 +731,27 @@ model Invoice {
   @@index([templateId])
   @@index([createdAt])
   @@map("invoices")
+}
+
+model InvoiceProduct {
+  id        String   @id @default(uuid())
+  name      String
+  hsnCode   String
+  unitPrice Float
+  taxRatePct Float   @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  createdById    String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([name])
+  @@index([hsnCode])
+  @@map("invoice_products")
 }
 
 model InvoiceLineItem {

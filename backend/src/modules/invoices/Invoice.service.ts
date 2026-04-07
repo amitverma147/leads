@@ -5,11 +5,14 @@ import { parsePaginationParams, PaginatedResult } from '../../utils/pagination';
 import { INVOICE_STATUS, InvoiceStatus } from '../../config/constants';
 import {
   CreateInvoiceInput,
+  CreateInvoiceProductInput,
   UpdateInvoiceInput,
+  UpdateInvoiceProductInput,
   InvoiceFilters,
   InvoiceListResponse,
   InvoiceDetailResponse,
   InvoiceCustomerResponse,
+  InvoiceProductResponse,
   InvoiceStatsResponse,
   LineItemResponse,
 } from './Invoice.types';
@@ -61,28 +64,55 @@ export class InvoiceService {
 
     // ── Calculate totals ──────────────────────────────────────────────────────
     let subtotal = 0;
+    let lineDiscountTotal = 0;
+    let lineTaxTotal = 0;
     const lineItemsData = input.lineItems.map((li, idx) => {
-      const lineDiscount = (li.discountPct ?? 0) / 100;
-      const lineTax = (li.taxRatePct ?? globalTaxRate) / 100;
+      const lineDiscountPct = li.discountPct ?? 0;
+      const lineTaxRatePct = li.taxRatePct ?? globalTaxRate;
+      const lineDiscount = lineDiscountPct / 100;
+      const lineTax = lineTaxRatePct / 100;
       const baseAmount = li.quantity * li.unitPrice;
       const afterDiscount = baseAmount * (1 - lineDiscount);
-      const amount = afterDiscount * (1 + lineTax);
+      const taxAmountForLine = afterDiscount * lineTax;
+      const amount = afterDiscount + taxAmountForLine;
       subtotal += baseAmount;
+      lineDiscountTotal += baseAmount - afterDiscount;
+      lineTaxTotal += taxAmountForLine;
+
+      const metadata: Record<string, unknown> = {
+        ...(li.metadata ?? {}),
+      };
+
+      if (li.hsnCode) {
+        metadata.hsnCode = li.hsnCode;
+      }
+
+      if (li.productId) {
+        metadata.productId = li.productId;
+      }
+
       return {
         description: li.description,
         quantity: li.quantity,
         unitPrice: li.unitPrice,
-        discountPct: li.discountPct ?? 0,
-        taxRatePct: li.taxRatePct ?? globalTaxRate,
+        discountPct: lineDiscountPct,
+        taxRatePct: lineTaxRatePct,
         amount: Math.round(amount * 100) / 100,
         order: li.order ?? idx,
-        metadata: (li.metadata ?? {}) as object,
+        metadata: metadata as object,
       };
     });
 
     const discountAmount = input.discount ?? 0;
-    const taxableAmount = subtotal - discountAmount;
-    const taxAmount = Math.round(taxableAmount * (globalTaxRate / 100) * 100) / 100;
+    const taxableBeforeGlobalDiscount = Math.max(0, subtotal - lineDiscountTotal);
+    const effectiveTaxRate =
+      taxableBeforeGlobalDiscount > 0 ? lineTaxTotal / taxableBeforeGlobalDiscount : 0;
+    const globalDiscountTaxReduction = Math.min(
+      lineTaxTotal,
+      Math.max(0, discountAmount) * effectiveTaxRate
+    );
+    const taxAmount = Math.round((lineTaxTotal - globalDiscountTaxReduction) * 100) / 100;
+    const taxableAmount = taxableBeforeGlobalDiscount - discountAmount;
     const total = Math.round((taxableAmount + taxAmount) * 100) / 100;
 
     // ── Customer snapshot ────────────────────────────────────────────────────
@@ -467,6 +497,138 @@ export class InvoiceService {
     };
   }
 
+  // ─── Product Catalog ──────────────────────────────────────────────────────
+
+  async createProduct(
+    input: CreateInvoiceProductInput,
+    organizationId: string,
+    createdById: string
+  ): Promise<InvoiceProductResponse> {
+    const existing = await prisma.invoiceProduct.findFirst({
+      where: {
+        organizationId,
+        name: { equals: input.name, mode: 'insensitive' },
+        hsnCode: { equals: input.hsnCode, mode: 'insensitive' },
+      },
+    });
+
+    if (existing) {
+      throw ApiError.conflict('Product with same name and HSN code already exists');
+    }
+
+    const product = await prisma.invoiceProduct.create({
+      data: {
+        name: input.name,
+        hsnCode: input.hsnCode,
+        unitPrice: input.unitPrice,
+        taxRatePct: input.taxRatePct,
+        organizationId,
+        createdById,
+      },
+    });
+
+    return this.formatProduct(product);
+  }
+
+  async updateProduct(
+    productId: string,
+    organizationId: string,
+    input: UpdateInvoiceProductInput
+  ): Promise<InvoiceProductResponse> {
+    const existing = await prisma.invoiceProduct.findFirst({
+      where: { id: productId, organizationId },
+    });
+
+    if (!existing) {
+      throw ApiError.notFound('Invoice product not found');
+    }
+
+    if (input.name || input.hsnCode) {
+      const duplicate = await prisma.invoiceProduct.findFirst({
+        where: {
+          organizationId,
+          id: { not: productId },
+          name: input.name ? { equals: input.name, mode: 'insensitive' } : existing.name,
+          hsnCode: input.hsnCode ? { equals: input.hsnCode, mode: 'insensitive' } : existing.hsnCode,
+        },
+      });
+
+      if (duplicate) {
+        throw ApiError.conflict('Product with same name and HSN code already exists');
+      }
+    }
+
+    const product = await prisma.invoiceProduct.update({
+      where: { id: productId },
+      data: {
+        name: input.name,
+        hsnCode: input.hsnCode,
+        unitPrice: input.unitPrice,
+        taxRatePct: input.taxRatePct,
+        isActive: input.isActive,
+      },
+    });
+
+    return this.formatProduct(product);
+  }
+
+  async deleteProduct(productId: string, organizationId: string): Promise<void> {
+    const existing = await prisma.invoiceProduct.findFirst({
+      where: { id: productId, organizationId },
+    });
+
+    if (!existing) {
+      throw ApiError.notFound('Invoice product not found');
+    }
+
+    await prisma.invoiceProduct.delete({ where: { id: productId } });
+  }
+
+  async getProducts(
+    organizationId: string,
+    filters: { search?: string; isActive?: boolean },
+    page?: number,
+    limit?: number,
+    sortBy = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc'
+  ): Promise<PaginatedResult<InvoiceProductResponse>> {
+    const pagination = parsePaginationParams(page, limit);
+    const where: Record<string, unknown> = { organizationId };
+
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { hsnCode: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    const [total, products] = await Promise.all([
+      prisma.invoiceProduct.count({ where }),
+      prisma.invoiceProduct.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+    ]);
+
+    return {
+      data: products.map((p) => this.formatProduct(p)),
+      meta: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasNextPage: pagination.page < Math.ceil(total / pagination.limit),
+        hasPrevPage: pagination.page > 1,
+      },
+    };
+  }
+
   // ─── Formatters ───────────────────────────────────────────────────────────
 
   private formatList(inv: any): InvoiceListResponse {
@@ -499,6 +661,8 @@ export class InvoiceService {
       lineItems: inv.lineItems.map((li: any): LineItemResponse => ({
         id: li.id,
         description: li.description,
+        hsnCode: li.metadata?.hsnCode,
+        productId: li.metadata?.productId,
         quantity: li.quantity,
         unitPrice: li.unitPrice,
         discountPct: li.discountPct,
@@ -531,6 +695,20 @@ export class InvoiceService {
       totalSpend: c.totalSpend,
       invoiceCount: c.invoiceCount,
       lastInvoiceAt: c.lastInvoiceAt,
+    };
+  }
+
+  private formatProduct(product: any): InvoiceProductResponse {
+    return {
+      id: product.id,
+      name: product.name,
+      hsnCode: product.hsnCode,
+      unitPrice: product.unitPrice,
+      taxRatePct: product.taxRatePct,
+      isActive: product.isActive,
+      createdById: product.createdById ?? null,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
     };
   }
 }

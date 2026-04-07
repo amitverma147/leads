@@ -4,6 +4,8 @@ import { InvoiceStatus } from '../../config/constants';
 
 export interface CreateLineItemInput {
   description: string;
+  hsnCode?: string;
+  productId?: string;
   quantity: number;
   unitPrice: number;
   discountPct?: number;   // 0–100
@@ -15,6 +17,8 @@ export interface CreateLineItemInput {
 export interface LineItemResponse {
   id: string;
   description: string;
+  hsnCode?: string;
+  productId?: string;
   quantity: number;
   unitPrice: number;
   discountPct: number;
@@ -135,4 +139,31 @@ export interface InvoiceStatsResponse {
   pendingRevenue: number;
   thisMonthCount: number;
   thisMonthRevenue: number;
+}
+
+export interface CreateInvoiceProductInput {
+  name: string;
+  hsnCode: string;
+  unitPrice: number;
+  taxRatePct: number;
+}
+
+export interface UpdateInvoiceProductInput {
+  name?: string;
+  hsnCode?: string;
+  unitPrice?: number;
+  taxRatePct?: number;
+  isActive?: boolean;
+}
+
+export interface InvoiceProductResponse {
+  id: string;
+  name: string;
+  hsnCode: string;
+  unitPrice: number;
+  taxRatePct: number;
+  isActive: boolean;
+  createdById?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }

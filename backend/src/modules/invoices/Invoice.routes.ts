@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as ctrl from './Invoice.controller';
 import { authenticate } from '../../middleware/auth.middleware';
-import { requireAdmin, requireMinRole } from '../../middleware/rbac.middleware';
+import { requireMinRole } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import { ROLES } from '../../config/constants';
 import {
@@ -11,6 +11,10 @@ import {
   invoiceListQuerySchema,
   customerIdParamSchema,
   customerListQuerySchema,
+  createInvoiceProductSchema,
+  updateInvoiceProductSchema,
+  invoiceProductIdParamSchema,
+  invoiceProductListQuerySchema,
 } from './Invoice.validation';
 
 const router = Router();
@@ -20,6 +24,30 @@ router.use(authenticate);
 // ─── Invoice Routes ──────────────────────────────────���────────────────────────
 
 router.get('/stats', ctrl.getInvoiceStats);
+
+router.get(
+  '/products',
+  validate({ query: invoiceProductListQuerySchema }),
+  ctrl.getInvoiceProducts
+);
+
+router.post(
+  '/products',
+  validate({ body: createInvoiceProductSchema }),
+  ctrl.createInvoiceProduct
+);
+
+router.patch(
+  '/products/:id',
+  validate({ params: invoiceProductIdParamSchema, body: updateInvoiceProductSchema }),
+  ctrl.updateInvoiceProduct
+);
+
+router.delete(
+  '/products/:id',
+  validate({ params: invoiceProductIdParamSchema }),
+  ctrl.deleteInvoiceProduct
+);
 
 router.post(
   '/',

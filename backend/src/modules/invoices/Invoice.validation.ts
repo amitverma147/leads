@@ -18,6 +18,8 @@ const customerInputSchema = z.object({
 
 const lineItemSchema = z.object({
   description: z.string().min(1).max(500).trim(),
+  hsnCode: z.string().max(40).trim().optional(),
+  productId: z.string().uuid().optional(),
   quantity: z.number().positive(),
   unitPrice: z.number().min(0),
   discountPct: z.number().min(0).max(100).optional(),
@@ -93,5 +95,34 @@ export const customerListQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional(),
 });
 
+export const createInvoiceProductSchema = z.object({
+  name: z.string().min(1).max(200).trim(),
+  hsnCode: z.string().min(1).max(40).trim(),
+  unitPrice: z.number().min(0),
+  taxRatePct: z.number().min(0).max(100),
+});
+
+export const updateInvoiceProductSchema = z.object({
+  name: z.string().min(1).max(200).trim().optional(),
+  hsnCode: z.string().min(1).max(40).trim().optional(),
+  unitPrice: z.number().min(0).optional(),
+  taxRatePct: z.number().min(0).max(100).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const invoiceProductIdParamSchema = z.object({
+  id: z.string().uuid('Invalid product ID'),
+});
+
+export const invoiceProductListQuerySchema = z.object({
+  page: numberQuery.default(1),
+  limit: numberQuery.default(200),
+  search: z.string().optional(),
+  isActive: booleanQuery,
+  sortBy: z.enum(['createdAt', 'updatedAt', 'name', 'hsnCode', 'unitPrice']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+});
+
 export type CreateInvoiceSchemaType = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceSchemaType = z.infer<typeof updateInvoiceSchema>;
+export type UpdateInvoiceProductSchemaType = z.infer<typeof updateInvoiceProductSchema>;
