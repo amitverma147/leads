@@ -7,6 +7,7 @@ import {
   LEAD_STATUS,
   LEAD_SOURCE,
   LEAD_PRIORITY,
+  FIELD_TYPES,
   ROLES,
   Role,
 } from '../../config/constants';
@@ -56,11 +57,17 @@ export class LeadsService {
           organizationId,
           isActive: true,
         },
+        select: {
+          id: true,
+          fields: true,
+        },
       });
 
       if (!form) {
         throw ApiError.notFound('Form not found');
       }
+
+      this.validateFormSubmissionData(form.fields as Record<string, any>[], input.formData || {});
     }
 
     // Validate assignee if provided
@@ -131,6 +138,76 @@ export class LeadsService {
     logger.info(`Lead created: ${lead.id} by user: ${createdById}`);
 
     return this.formatLeadDetailResponse(lead);
+  }
+
+  private validateFormSubmissionData(
+    formFields: Record<string, any>[],
+    formData: Record<string, any>
+  ): void {
+    if (!Array.isArray(formFields)) return;
+
+    for (const field of formFields) {
+      if (!field || typeof field !== 'object') continue;
+
+      const fieldId = String(field.id ?? '');
+      if (!fieldId) continue;
+
+      const fieldType = String(field.type ?? '');
+      const fieldLabel = String(field.label ?? fieldId);
+      const isRequired =
+        fieldType === FIELD_TYPES.LOCATION ||
+        field.required === true ||
+        field.validation?.required === true;
+
+      const value = formData[fieldId];
+
+      if (isRequired && fieldType === FIELD_TYPES.LOCATION) {
+        if (!this.hasValidLocationPayload(value)) {
+          throw ApiError.badRequest(
+            `Location is required for "${fieldLabel}". Please allow browser location access before submitting.`
+          );
+        }
+        continue;
+      }
+
+      if (isRequired && this.isEmptyFormFieldValue(value)) {
+        throw ApiError.badRequest(`Field "${fieldLabel}" is required`);
+      }
+    }
+  }
+
+  private isEmptyFormFieldValue(value: unknown): boolean {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string') return value.trim().length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    return false;
+  }
+
+  private hasValidLocationPayload(value: unknown): boolean {
+    if (!value || typeof value !== 'object') return false;
+
+    const source = value as {
+      latitude?: unknown;
+      longitude?: unknown;
+      lat?: unknown;
+      lng?: unknown;
+      coords?: { latitude?: unknown; longitude?: unknown };
+    };
+
+    const latitudeRaw = source.latitude ?? source.lat ?? source.coords?.latitude;
+    const longitudeRaw = source.longitude ?? source.lng ?? source.coords?.longitude;
+
+    const latitude = Number(latitudeRaw);
+    const longitude = Number(longitudeRaw);
+
+    return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
+    );
   }
 
   /**

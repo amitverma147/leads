@@ -49,6 +49,7 @@ const formFieldSchema = z.object({
   id: z.string().min(1).max(50),
   type: z.enum(fieldTypeValues),
   label: z.string().min(1).max(200),
+  required: z.boolean().optional(),
   placeholder: z.string().max(200).optional(),
   helpText: z.string().max(500).optional(),
   defaultValue: z.any().optional(),
